@@ -63,6 +63,9 @@ def main() -> None:
         # Clear the screen
         screen.fill(WHITE)
 
+        # Add border around whole screen
+        pygame.draw.rect(screen, (0, 0, 0), (0, 0, args.screen_width, args.screen_height), 1)
+
         # Draw mesh nodes
         for node in mesh_nodes:
             node.draw(screen, font)
