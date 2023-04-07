@@ -1,6 +1,5 @@
 """
-options.py
-Description: 
+Description:
 
 Author: Willian T. Lunardi
 Contact: wtlunar@gmail.com
@@ -10,21 +9,22 @@ Repository:
 """
 
 import argparse
+from typing import Tuple
 
 
 class Options:
     def __init__(self):
-        self.full_screen = True
-        self.screen_width = 1250
-        self.screen_height = 1000
-        self.node_spacing = 0
-        self.top_height = 0
-        self.font_size = 0
-        self.noise = 0.05
-        self.screen_size = (self.screen_width, self.screen_height)
+        self.full_screen: bool = False
+        self.screen_width: int = 1250
+        self.screen_height: int = 1000
+        self.node_spacing: int = 0
+        self.top_height: int = 0
+        self.font_size: int = 0
+        self.noise: float = 0.05
+        self.screen_size: Tuple[int, int] = (self.screen_width, self.screen_height)
         self.parse_options()
 
-    def parse_options(self):
+    def parse_options(self) -> 'Options':
         parser = argparse.ArgumentParser(description='Mesh Network Jamming Avoidance Demo UI')
 
         parser.add_argument('--full-screen', action='store_true', default=self.full_screen, help='Set full screen mode')
@@ -50,8 +50,9 @@ class Options:
 
         return self
 
-    def update_resolution(self, width, height):
-        self.screen_width, self.screen_height = width, height
+    def update_resolution(self, width: int, height: int) -> None:
+        self.screen_width = width
+        self.screen_height = height
         self.node_spacing = self.screen_width // 3
         self.top_height = self.screen_height // 2
         self.font_size = int(0.04 * self.screen_height)

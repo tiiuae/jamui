@@ -1,29 +1,44 @@
+"""
+Description:
+
+Author: Willian T. Lunardi
+Contact: wtlunar@gmail.com
+License: MIT License (https://opensource.org/licenses/MIT)
+
+Repository:
+"""
+
+from typing import List
+
 import numpy as np
+import pygame
 
-from node import Node
-from util import *
 from bar_plot import BarPlot
+from node import Node
 from options import Options
+from util import Screen, Font, WHITE, quit_pygame
 
 
-def main():
-    args = Options()
+def main() -> None:
+    args: Options = Options()
 
     # Initialize Pygame
     pygame.init()
 
     # Set up the screen
-    screen = Screen.get_instance(args)
-    font = Font.get_instance(24)
+    screen: pygame.Surface = Screen.get_instance(args)
+    font: pygame.font.Font = Font.get_instance(24)
 
     # Create mesh nodes and jammer
-    mesh_nodes = [Node(f'Node {i + 1}', 2, 'node_green2.png', ((args.screen_size[0] // 2) - args.node_spacing + (i * args.node_spacing), (args.top_height // 4))) for i in range(3)]
-    jammer = Node('Jammer', 2, 'node_red.png', (args.screen_size[0] // 2, 3 * args.top_height // 4))
+    mesh_nodes: List[Node] = [
+        Node(f'Node {i + 1}', 2, 'node_green2.png', ((args.screen_size[0] // 2) - args.node_spacing + (i * args.node_spacing), (args.top_height // 4))) for i in range(3)]
+    jammer: Node = Node('Jammer', 2, 'node_red.png', (args.screen_size[0] // 2, 3 * args.top_height // 4))
 
     # Create the bar plot
-    channels = [36, 40, 44, 48, 149, 153, 157, 161, 165]
-    plot_width, plot_height = args.screen_width, args.screen_height // 2
-    bar_plot = BarPlot(
+    channels: List[int] = [36, 40, 44, 48, 149, 153, 157, 161, 165]
+    plot_width: int = args.screen_width
+    plot_height: int = args.screen_height // 2
+    bar_plot: BarPlot = BarPlot(
         x=args.screen_size[0] // 2 - plot_width // 2,
         y=args.screen_size[1] - plot_height,
         width=plot_width,
@@ -34,14 +49,14 @@ def main():
     )
 
     # Main loop
-    done = False
+    done: bool = False
     while not done:
         # Check for events
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 done = True
             elif event.type == pygame.KEYDOWN and event.key == pygame.K_w:
-                r = np.random.random()
+                r: float = np.random.random()
                 for node in mesh_nodes:
                     node.change_channel(int(r * 10))
 
