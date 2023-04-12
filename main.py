@@ -8,6 +8,8 @@ License: MIT License (https://opensource.org/licenses/MIT)
 Repository:
 """
 
+import logging
+import sqlite3
 from typing import List
 
 import numpy as np
@@ -16,7 +18,9 @@ import pygame
 from bar_plot import BarPlot
 from node import Node
 from options import Options
-from util import Screen, Font, WHITE, quit_pygame
+from util import Screen, Font, Colors, quit_pygame
+
+logging.basicConfig(level=logging.INFO)
 
 
 def main() -> None:
@@ -35,7 +39,7 @@ def main() -> None:
     jammer: Node = Node('Jammer', 2, 'node_red.png', (args.screen_size[0] // 2, 3 * args.top_height // 4))
 
     # Create the bar plot
-    channels: List[int] = [36, 40, 44, 48, 149, 153, 157, 161, 165]
+    channels: List[int] = [36, 40, 44, 48, 52, 56, 60, 64, 149, 153, 157, 161, 165]
     plot_width: int = args.screen_width
     plot_height: int = args.screen_height // 2
     bar_plot: BarPlot = BarPlot(
@@ -47,6 +51,10 @@ def main() -> None:
         x_title='5GHz Channels',
         y_title='Estimated Channel Quality'
     )
+
+    # Connect to the database
+    conn = sqlite3.connect('server/demo.db')
+    c = conn.cursor()
 
     # Main loop
     done: bool = False
@@ -61,7 +69,7 @@ def main() -> None:
                     node.change_channel(int(r * 10))
 
         # Clear the screen
-        screen.fill(WHITE)
+        screen.fill(Colors.WHITE.value)
 
         # Add border around whole screen
         pygame.draw.rect(screen, (0, 0, 0), (0, 0, args.screen_width, args.screen_height), 1)
@@ -73,8 +81,18 @@ def main() -> None:
         # Draw jammer
         jammer.draw(screen, font)
 
-        # Draw plot
-        bar_plot.draw(screen, font)
+        # Draw plot by loading quality estimation values from database
+        try:
+            c.execute("SELECT * FROM channel_quality")
+            results = c.fetchall()
+            if results is not None:
+                values = [None] * len(channels)
+                for row in results:
+                    if row[0] in channels:
+                        values[channels.index(row[0])] = row[1]
+                bar_plot.draw(screen, font, values)
+        except Exception as e:
+            logging.error("Database connection error", exc_info=True)
 
         # Update the display
         pygame.display.flip()

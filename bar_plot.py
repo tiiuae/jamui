@@ -102,11 +102,11 @@ class BarPlot:
             bar.target_value = values[i]
             bar.transition_to_target_value(transition_duration)
 
-    def draw(self, surface: pygame.Surface, font: pygame.font.Font) -> None:
+    def draw(self, surface: pygame.Surface, font: pygame.font.Font, values: np.ndarray) -> None:
         new_values_interval_sec: int = 2
         if time.time() - new_values_interval_sec > self.last_update:
             index: int = random.randint(0, self.num_bars - 1)
-            values: np.ndarray = generate_smooth_distribution(self.num_bars, index)
+            # values: np.ndarray = generate_smooth_distribution(self.num_bars, index)
             self.update_bar_values(values)
             self.last_update: float = time.time()
 

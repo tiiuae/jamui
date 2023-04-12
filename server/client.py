@@ -19,7 +19,7 @@ class Client(threading.Thread):
 
             while self.running:
                 time.sleep(1)
-                data = {"node_id": self.node_id, "channel": self.channel}
+                data = {'action': 'channel_switch', 'node_id': self.node_id, 'channel': self.channel}
                 json_str = json.dumps(data)
                 s.send(json_str.encode())
                 print('sent')

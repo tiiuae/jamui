@@ -41,9 +41,53 @@ class DatasetManager(threading.Thread):
                 c.execute("INSERT INTO node_channels (node_id, channel) VALUES (?, ?)", node)
             conn.commit()
 
+            c.execute('DROP TABLE IF EXISTS channel_quality')
+            c.execute("""
+            CREATE TABLE IF NOT EXISTS channel_quality (
+                channel INTEGER PRIMARY KEY,
+                quality REAL
+            )
+            """)
+            conn.commit()
+
     def run(self) -> None:
         """
         Periodically fetches and displays data from the SQLite database.
+        """
+        display_channels_thread = threading.Thread(target=self.display_node_channels)
+        display_quality_thread = threading.Thread(target=self.display_channel_quality)
+
+        display_channels_thread.start()
+        display_quality_thread.start()
+
+        display_channels_thread.join()
+        display_quality_thread.join()
+
+    def display_channel_quality(self) -> None:
+        """
+        Periodically fetches and displays data from the channel_quality table.
+        """
+        prev_results = None
+        while self.running:
+            time.sleep(self.interval)
+            try:
+                with sqlite3.connect('demo.db') as conn:
+                    c = conn.cursor()
+                    c.execute("SELECT * FROM channel_quality")
+                    results = c.fetchall()
+                    if prev_results is None or results != prev_results:
+                        logging.info("Channel Quality:")
+                        for row in results:
+                            logging.info(f"Channel: {row[0]}, Quality: {row[1]}")
+                        prev_results = results
+            except Exception as e:
+                logging.error("Database connection error", exc_info=True)
+                self.running = False
+                break
+
+    def display_node_channels(self) -> None:
+        """
+        Periodically fetches and displays data from the node_channels table.
         """
         prev_results = None
         while self.running:
@@ -54,6 +98,7 @@ class DatasetManager(threading.Thread):
                     c.execute("SELECT * FROM node_channels")
                     results = c.fetchall()
                     if prev_results is None or results != prev_results:
+                        logging.info("Node Channels:")
                         for row in results:
                             logging.info(f"Node ID: {row[0]}, Channel: {row[1]}")
                         prev_results = results
@@ -91,36 +136,56 @@ class Client(threading.Thread):
         Handles incoming messages from the client and updates the SQLite database.
         """
         while self.running:
-            message = self.socket.recv(1024).decode()
-
-            # Check if the message is empty => it occurs when the client disconnects
-            if not message:
-                break
-
             try:
+                message = self.socket.recv(1024).decode()
+                if not message:
+                    break
+
                 json_object = json.loads(message)
-            except ValueError as e:
-                logging.warning('Message is not a JSON', exc_info=True)
+                action = json_object.get("action")
+                if action == "channel_switch":
+                    self.update_node_channel(json_object["node_id"], json_object["channel"])
+                elif action == "new_estimation":
+                    self.store_channel_quality(json_object["channel_quality"], json_object["channels"])
+            except ConnectionResetError:
+                logging.warning("Connection forcibly closed by the remote host")
                 break
-            else:
-                node_id = json_object['node_id']
-                channel = json_object['channel']
+            except ValueError:
+                logging.warning("Message is not a JSON", exc_info=True)
+                break
 
-                self.c.execute("""
-                REPLACE INTO node_channels (node_id, channel) 
-                VALUES (?, ?)
-                """, (node_id, channel))
-                self.conn.commit()
+    def update_node_channel(self, node_id: int, channel: int) -> None:
+        """
+        Updates the node_channels table with the given node_id and channel values.
 
-        # Close the connection when the loop ends
-        self.stop()
+        :param node_id: The node ID to update in the table.
+        :param channel: The channel value to set for the node.
+        """
+        self.c.execute("""
+        REPLACE INTO node_channels (node_id, channel)
+        VALUES (?, ?)
+        """, (node_id, channel))
+        self.conn.commit()
+
+    def store_channel_quality(self, channel_quality: List[float], channels: List[int]) -> None:
+        """
+        Stores the channel quality data in the channel_quality table.
+
+        :param channel_quality: A list of channel quality values.
+        :param channels: A list of channel indices corresponding to the quality values.
+        """
+        for channel, quality in zip(channels, channel_quality):
+            self.c.execute("""
+            REPLACE INTO channel_quality (channel, quality)
+            VALUES (?, ?)
+            """, (channel, quality))
+        self.conn.commit()
 
     def stop(self) -> None:
         """
         Stops the Client thread and closes the socket and database connections.
         """
         self.running = False
-        self.socket.send(b'close')
         self.socket.close()
         self.conn.close()
 
@@ -146,7 +211,7 @@ class Server:
         serversocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         serversocket.bind((self.host, self.port))
         serversocket.listen(5)
-        logging.info('server started and listening')
+        logging.info("server started and listening")
 
         while True:
             c_socket, c_address = serversocket.accept()
@@ -159,9 +224,9 @@ class Server:
         :param sig: The signal received by the handler.
         :param frame: The current execution frame.
         """
-        print('Attempting to close threads.')
+        print("Attempting to close threads.")
         for client in self.clients:
-            print('joining', client.address)
+            print("joining", client.address)
             client.stop()
         print("threads successfully closed")
         sys.exit(0)
@@ -176,5 +241,5 @@ def main():
     server.start()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
