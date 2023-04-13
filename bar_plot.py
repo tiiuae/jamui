@@ -17,7 +17,6 @@ import numpy as np
 import pygame
 
 from text import Text
-from util import generate_smooth_distribution
 
 
 class Bar:
@@ -34,7 +33,7 @@ class Bar:
         self.target_value: float = 0.0
 
     def draw(self, surface: pygame.Surface, font: pygame.font.Font) -> None:
-        self.sprite = self.red_sprite if self.value < 0.2 else self.green_sprite
+        self.sprite = self.red_sprite if self.value < 0.5 else self.green_sprite
         self.rect = self.sprite.get_rect()
 
         # pygame.draw.circle(surface, (0, 255, 0), (self.x, self.y), 10)
@@ -99,8 +98,9 @@ class BarPlot:
 
     def update_bar_values(self, values: np.ndarray, transition_duration: float = 1.0) -> None:
         for i, bar in enumerate(self.bars):
-            bar.target_value = values[i]
-            bar.transition_to_target_value(transition_duration)
+            if values[i] is not None:
+                bar.target_value = values[i]
+                bar.transition_to_target_value(transition_duration)
 
     def draw(self, surface: pygame.Surface, font: pygame.font.Font, values: np.ndarray) -> None:
         new_values_interval_sec: int = 2

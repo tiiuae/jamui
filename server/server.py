@@ -6,7 +6,7 @@ import sqlite3
 import sys
 import threading
 import time
-from typing import List, Tuple
+from typing import List, Tuple, Dict, Any
 
 logging.basicConfig(level=logging.INFO)
 
@@ -116,12 +116,13 @@ class DatasetManager(threading.Thread):
 
 
 class Client(threading.Thread):
-    def __init__(self, socket: socket.socket, address: Tuple[str, int]):
+    def __init__(self, socket: socket.socket, address: Tuple[str, int], clients: List["Client"]):
         """
         Initializes the Client object.
 
         :param socket: The connected socket for the client.
         :param address: The address of the client.
+        :param clients: A list of all connected clients.
         """
         threading.Thread.__init__(self)
         self.socket = socket
@@ -129,6 +130,7 @@ class Client(threading.Thread):
         self.running = True
         self.conn = sqlite3.connect('demo.db', check_same_thread=False)
         self.c = self.conn.cursor()
+        self.clients = clients
         self.start()
 
     def run(self) -> None:
@@ -143,7 +145,9 @@ class Client(threading.Thread):
 
                 json_object = json.loads(message)
                 action = json_object.get("action")
-                if action == "channel_switch":
+                if action == "broadcast":
+                    self.broadcast(json_object)
+                elif action == "channel_switch":
                     self.update_node_channel(json_object["node_id"], json_object["channel"])
                 elif action == "new_estimation":
                     self.store_channel_quality(json_object["channel_quality"], json_object["channels"])
@@ -153,6 +157,20 @@ class Client(threading.Thread):
             except ValueError:
                 logging.warning("Message is not a JSON", exc_info=True)
                 break
+
+    def broadcast(self, message: Dict[str, Any]) -> None:
+        """
+        Sends a message to all connected clients except for the sender.
+
+        :param message: The message to broadcast.
+        """
+        for client in self.clients[:]:  # create a copy of the list for safe iteration
+            if client != self:
+                try:
+                    client.socket.sendall(json.dumps(message).encode())
+                except BrokenPipeError:
+                    print("Broken pipe error, client disconnected:", client.address)
+                    self.clients.remove(client)
 
     def update_node_channel(self, node_id: int, channel: int) -> None:
         """
@@ -215,7 +233,8 @@ class Server:
 
         while True:
             c_socket, c_address = serversocket.accept()
-            self.clients.append(Client(c_socket, c_address))
+            client = Client(c_socket, c_address, self.clients)
+            self.clients.append(client)
 
     def signal_handler(self, sig: signal.Signals, frame) -> None:
         """

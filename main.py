@@ -34,9 +34,8 @@ def main() -> None:
     font: pygame.font.Font = Font.get_instance(24)
 
     # Create mesh nodes and jammer
-    mesh_nodes: List[Node] = [
-        Node(f'Node {i + 1}', 2, 'node_green2.png', ((args.screen_size[0] // 2) - args.node_spacing + (i * args.node_spacing), (args.top_height // 4))) for i in range(3)]
-    jammer: Node = Node('Jammer', 2, 'node_red.png', (args.screen_size[0] // 2, 3 * args.top_height // 4))
+    mesh_nodes: List[Node] = [Node(f'Node {i + 1}', 2, ((args.screen_size[0] // 2) - args.node_spacing + (i * args.node_spacing), (args.top_height // 4))) for i in range(3)]
+    jammer: Node = Node('Jammer', 2, (args.screen_size[0] // 2, 3 * args.top_height // 4))
 
     # Create the bar plot
     channels: List[int] = [36, 40, 44, 48, 52, 56, 60, 64, 149, 153, 157, 161, 165]

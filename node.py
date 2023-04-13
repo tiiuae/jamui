@@ -13,10 +13,12 @@ from util import *
 
 
 class Node:
-    def __init__(self, name: str, channel: int, sprite_name: str, position: Tuple[int, int]):
+    def __init__(self, name: str, channel: int, position: Tuple[int, int]):
         self.channel: int = channel
-        self.sprite_name: str = sprite_name
-        self.sprite: pygame.Surface = pygame.image.load(f'sprites/{sprite_name}').convert_alpha()
+        if name == 'Jammer':
+            self.sprite: pygame.Surface = pygame.image.load(f'sprites/node_red.png').convert_alpha()
+        else:
+            self.sprite: pygame.Surface = pygame.image.load(f'sprites/node_green2.png').convert_alpha()
         self.shadow: pygame.Surface = pygame.image.load(f'sprites/node_shadow.png').convert_alpha()
         self.rect: pygame.Rect = self.sprite.get_rect()
         self.position: Vec2 = position if isinstance(position, Vec2) else Vec2(*position)

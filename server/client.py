@@ -17,12 +17,31 @@ class Client(threading.Thread):
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.connect((self.host, self.port))
 
+            # start a new thread to receive messages from the server
+            receive_thread = threading.Thread(target=self.receive_messages, args=(s,))
+            receive_thread.start()
+
             while self.running:
                 time.sleep(1)
                 data = {'action': 'channel_switch', 'node_id': self.node_id, 'channel': self.channel}
                 json_str = json.dumps(data)
                 s.send(json_str.encode())
-                print('sent')
+                # print('sent')
+
+                # if self.node_id == 1:
+                #     data = {'action': 'broadcast', 'channel': 1}
+                #     json_str = json.dumps(data)
+                #     s.send(json_str.encode())
+                #     print('sent')
+
+    def receive_messages(self, s):
+        while self.running:
+            data = s.recv(1024).decode()
+            if data:
+                message = json.loads(data)
+                action = message.get("action")
+                if action == "broadcast":
+                    print(f"Node {self.node_id} received broadcast: {message}")
 
     def stop(self):
         self.running = False
