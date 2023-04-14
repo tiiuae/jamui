@@ -49,7 +49,7 @@ class Client(threading.Thread):
 
 
 def main():
-    host = "localhost"
+    host = "40.40.40.5"
     port = 8000
 
     clients = [Client(1, 36, host, port), Client(2, 36, host, port), Client(3, 36, host, port)]

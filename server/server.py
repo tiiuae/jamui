@@ -234,6 +234,7 @@ class Server:
         while True:
             c_socket, c_address = serversocket.accept()
             client = Client(c_socket, c_address, self.clients)
+            print('New connection', client)
             self.clients.append(client)
 
     def signal_handler(self, sig: signal.Signals, frame) -> None:
@@ -255,7 +256,7 @@ def main():
     dd = DatasetManager()
     dd.start()
 
-    host, port = "localhost", 8000
+    host, port = "40.40.40.5", 8000
     server = Server(host, port)
     server.start()
 
