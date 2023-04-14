@@ -8,69 +8,79 @@ import time
 
 
 class CommsClient(threading.Thread):
-    def __init__(self, node_id, channel, host, port):
-        threading.Thread.__init__(self)
+    def __init__(self, node_id: int, channel: int, host: str, port: int) -> None:
+        """
+        Initialize the CommsClient object.
+
+        :param node_id: An integer representing the node ID.
+        :param channel: An integer representing the channel.
+        :param host: A string representing the host address.
+        :param port: An integer representing the port number.
+        """
+        super().__init__()
         self.node_id = node_id
         self.channel = channel
         self.host = host
         self.port = port
-        self.running = True
-        self.switching = False
+        self.running = threading.Event()
+        self.switching = threading.Event()
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-    def run(self):
-        previous_channel = self.channel
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.connect((self.host, self.port))
+    def run(self) -> None:
+        self.socket.connect((self.host, self.port))
+        self.running.set()
+        receive_thread = threading.Thread(target=self.receive_messages, args=(self.socket,))
+        receive_thread.start()
 
-            # start a new thread to receive messages from the server
-            receive_thread = threading.Thread(target=self.receive_messages, args=(s,))
-            receive_thread.start()
+    def receive_messages(self, socket: socket.socket) -> None:
+        """
+        Receive messages from the socket server.
 
-            # while self.running:
-            #     # ACK channel switch
-            #     # TODO: if current channel is different than previous channel
-            #     time.sleep(0.1)
-            #     data = {'action': 'channel_switch', 'node_id': self.node_id, 'channel': self.channel}
-            #     json_str = json.dumps(data)
-            #     s.send(json_str.encode())
-            #     # TODO: update previous_channel as current channel previous_channel = current channel
+        :param socket: A socket object representing the connection.
+        """
+        while self.running.is_set():
+            try:
+                message = socket.recv(1024).decode()
+                if not message:
+                    break
 
-    def receive_messages(self, s):
-        while self.running:
-            data = s.recv(1024).decode()
-            if data:
-                message = json.loads(data)
-                action = message.get("action")
+                json_object = json.loads(message)
+                action = json_object.get("action")
                 if action == "broadcast":
                     print(f"Node {self.node_id} received broadcast: {message}")
-                    new_channel = message['channel']
-                    if not self.switching:
-                        self.switching = True
-                        self.switch(new_channel)
+                    new_channel = json_object['channel']
+                    if not self.switching.is_set():
+                        self.switching.set()
+                        self.switch_channel(new_channel)
+            except ConnectionResetError:
+                print("Connection forcibly closed by the remote host")
+                break
+            except ValueError:
+                print("Message is not a JSON")
+                break
 
-    def stop(self):
-        self.running = False
+    def stop(self) -> None:
+        self.running.clear()
+        self.socket.close()
         self.join()
 
-    def switch(self, freq: int):
+    def switch_channel(self, freq: int) -> None:
+        """
+        Change the channel and call the ack_channel_change method.
+
+        :param freq: An integer representing the new frequency.
+        """
         print(f"\nChanging channels... moving to {freq} MHz\n")
-
-        # Put wlp1s0 down
-        subprocess.call('ifconfig wlp1s0 0', shell=True)
-        subprocess.call('ifconfig wlp1s0 down', shell=True)
-
-        # Kill wpa_supplicant
-        print('Killing wpa_supp')
-        subprocess.call('killall wpa_supplicant', shell=True)
+        subprocess.run(['ifconfig', 'wlp1s0', '0'])
+        subprocess.run(['ifconfig', 'wlp1s0', 'down'])
+        subprocess.run(['killall', 'wpa_supplicant'])
         time.sleep(10)
 
-        # Ensure clean termination of wpa_supplicant
         filename = '/var/run/wpa_supplicant/wlp1s0'
         if os.path.exists(filename):
             os.remove(filename)
             print(f"{filename} deleted")
 
-        # Change mesh.conf to set FREQ to the value from json file
         with open('/var/run/wpa_supplicant-11s.conf', 'r') as f:
             conf = f.read()
         conf = re.sub(r'frequency=\d+', f'frequency={freq}', conf)
@@ -78,15 +88,20 @@ class CommsClient(threading.Thread):
         with open('/var/run/wpa_supplicant-11s.conf', 'w') as f:
             f.write(conf)
 
-        # Restart wpa_supplicant
-        print('Restarting wpa_supp')
-        subprocess.call(f'wpa_supplicant -Dnl80211 -iwlp1s0 -c /var/run/wpa_supplicant-11s.conf -B', shell=True)
+        subprocess.run(['wpa_supplicant', '-Dnl80211', '-iwlp1s0', '-c', '/var/run/wpa_supplicant-11s.conf', '-B'])
         time.sleep(3)
+        subprocess.run(['iw', 'dev'])
 
-        # Display changed frequency
-        time.sleep(3)
-        subprocess.call('iw dev', shell=True)
-        self.switching = False
+        # Call the ack_channel_change method after the channel has been switched
+        self.ack_channel_change()
+
+    def ack_channel_change(self) -> None:
+        """
+        Send an acknowledgement to the socket server with the node and channel.
+        """
+        data = {'action': 'channel_switch', 'node_id': self.node_id, 'channel': self.channel}
+        json_str = json.dumps(data)
+        self.socket.send(json_str.encode())
 
 
 def main():
