@@ -8,18 +8,18 @@ import time
 
 
 class CommsClient(threading.Thread):
-    def __init__(self, node_id: int, channel: int, host: str, port: int) -> None:
+    def __init__(self, node_id: int, freq: int, host: str, port: int) -> None:
         """
         Initialize the CommsClient object.
 
         :param node_id: An integer representing the node ID.
-        :param channel: An integer representing the channel.
+        :param freq: An integer representing the channel frequency.
         :param host: A string representing the host address.
         :param port: An integer representing the port number.
         """
         super().__init__()
         self.node_id = node_id
-        self.channel = channel
+        self.frequency = freq
         self.host = host
         self.port = port
         self.running = threading.Event()
@@ -92,6 +92,9 @@ class CommsClient(threading.Thread):
         time.sleep(3)
         subprocess.run(['iw', 'dev'])
 
+        # Update current frequency
+        self.frequency = freq
+
         # Call the ack_channel_change method after the channel has been switched
         self.ack_channel_change()
 
@@ -99,7 +102,7 @@ class CommsClient(threading.Thread):
         """
         Send an acknowledgement to the socket server with the node and channel.
         """
-        data = {'action': 'channel_switch', 'node_id': self.node_id, 'channel': self.channel}
+        data = {'action': 'channel_switch', 'node_id': self.node_id, 'channel': self.frequency}
         json_str = json.dumps(data)
         self.socket.send(json_str.encode())
 
@@ -108,9 +111,9 @@ def main():
     host = "40.40.40.5"
     port = 8000
     node_id = 1
-    channel = 36
+    freq = 5180
 
-    client = CommsClient(node_id, channel, host, port)
+    client = CommsClient(node_id, freq, host, port)
     client.start()
 
     try:
