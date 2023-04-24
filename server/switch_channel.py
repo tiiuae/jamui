@@ -24,7 +24,7 @@ class CommsClient(threading.Thread):
         self.port = port
         self.running = threading.Event()
         self.switching = threading.Event()
-        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.socket = socket.socket(socket.AF_INET6, socket.SOCK_STREAM)
 
     def run(self) -> None:
         self.socket.connect((self.host, self.port))
@@ -52,6 +52,8 @@ class CommsClient(threading.Thread):
                     if not self.switching.is_set():
                         self.switching.set()
                         self.switch_channel(new_channel)
+                        self.switching.clear()
+
             except ConnectionResetError:
                 print("Connection forcibly closed by the remote host")
                 break
@@ -98,6 +100,7 @@ class CommsClient(threading.Thread):
         # Call the ack_channel_change method after the channel has been switched
         self.ack_channel_change()
 
+
     def ack_channel_change(self) -> None:
         """
         Send an acknowledgement to the socket server with the node and channel.
@@ -108,8 +111,8 @@ class CommsClient(threading.Thread):
 
 
 def main():
-    host = "40.40.40.5"
-    port = 8000
+    host = "fd01::1"
+    port = 8080
     node_id = 1
     freq = 5180
 
