@@ -91,7 +91,7 @@ class CommsClient(threading.Thread):
             f.write(conf)
 
         subprocess.run(['wpa_supplicant', '-Dnl80211', '-iwlp1s0', '-c', '/var/run/wpa_supplicant-11s.conf', '-B'])
-        time.sleep(3)
+        time.sleep(4)
         subprocess.run(['iw', 'dev'])
 
         # Update current frequency
