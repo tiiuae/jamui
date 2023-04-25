@@ -51,7 +51,7 @@ class Vec2:
 
 
 class BlinkController:
-    def __init__(self, times: int = 5, blink_interval: float = 0.5):
+    def __init__(self, times: int = 15, blink_interval: float = 0.5):
         self.text_on: bool = True
         self.blinking: bool = False
         self.times: int = times

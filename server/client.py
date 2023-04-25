@@ -1,4 +1,5 @@
 import json
+import random
 import socket
 import threading
 import time
@@ -22,10 +23,13 @@ class Client(threading.Thread):
             receive_thread.start()
 
             while self.running:
-                time.sleep(1)
+
+                self.channel = random.choice([36, 40, 44, 48, 52, 56, 60, 64, 149, 153, 157, 161, 165])
                 data = {'action': 'channel_switch', 'node_id': self.node_id, 'channel': self.channel}
                 json_str = json.dumps(data)
                 s.send(json_str.encode())
+                print(f'sent: {json_str}')
+                time.sleep(10)
                 # print('sent')
 
                 # if self.node_id == 1:
@@ -49,10 +53,10 @@ class Client(threading.Thread):
 
 
 def main():
-    host = "40.40.40.5"
+    host = "localhost"
     port = 8000
 
-    clients = [Client(1, 36, host, port), Client(2, 36, host, port), Client(3, 36, host, port)]
+    clients = [Client(1, 40, host, port)]
     # clients = [Client(1, 36, host, port)]
     for client in clients:
         client.start()

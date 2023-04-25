@@ -1,10 +1,8 @@
 """
 Description:
-
 Author: Willian T. Lunardi
 Contact: wtlunar@gmail.com
 License: MIT License (https://opensource.org/licenses/MIT)
-
 Repository:
 """
 
@@ -12,7 +10,6 @@ import logging
 import sqlite3
 from typing import List
 
-import numpy as np
 import pygame
 
 from bar_plot import BarPlot
@@ -34,8 +31,8 @@ def main() -> None:
     font: pygame.font.Font = Font.get_instance(24)
 
     # Create mesh nodes and jammer
-    mesh_nodes: List[Node] = [Node(f'Node {i + 1}', 2, ((args.screen_size[0] // 2) - args.node_spacing + (i * args.node_spacing), (args.top_height // 4))) for i in range(3)]
-    jammer: Node = Node('Jammer', 2, (args.screen_size[0] // 2, 3 * args.top_height // 4))
+    mesh_nodes: List[Node] = [Node(f'Node {i + 1}', -1, ((args.screen_size[0] // 2) - args.node_spacing + (i * args.node_spacing), (args.top_height // 4))) for i in range(3)]
+    jammer: Node = Node('Jammer', None, (args.screen_size[0] // 2, 3 * args.top_height // 4))
 
     # Create the bar plot
     channels: List[int] = [36, 40, 44, 48, 52, 56, 60, 64, 149, 153, 157, 161, 165]
@@ -54,18 +51,35 @@ def main() -> None:
     # Connect to the database
     conn = sqlite3.connect('server/demo.db')
     c = conn.cursor()
+    current_channel = -1
 
     # Main loop
     done: bool = False
     while not done:
+        # Check for latest wireless scanner channel on database
+        latest_channel = None
+        try:
+            c.execute("SELECT * FROM node_channels")
+            results = c.fetchall()
+            if results is not None:
+                latest_channel = int(results[0][1])
+        except Exception as e:
+            logging.error("Database connection error", exc_info=True)
+
         # Check for events
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 done = True
-            elif event.type == pygame.KEYDOWN and event.key == pygame.K_w:
-                r: float = np.random.random()
-                for node in mesh_nodes:
-                    node.change_channel(int(r * 10))
+            # elif event.type == pygame.KEYDOWN and event.key == pygame.K_w:
+            #     r: float = np.random.random()
+            #     for node in mesh_nodes:
+            #         node.change_channel(int(r * 10))
+
+        # Check if latest channel is different from current, if yes, update text with animation
+        if latest_channel is not None and latest_channel != current_channel:
+            current_channel = latest_channel
+            for node in mesh_nodes:
+                node.change_channel(latest_channel)
 
         # Clear the screen
         screen.fill(Colors.WHITE.value)
@@ -89,7 +103,7 @@ def main() -> None:
                 for row in results:
                     if row[0] in channels:
                         values[channels.index(row[0])] = row[1]
-                bar_plot.draw(screen, font, values)
+                bar_plot.draw(screen, font, values, current_channel)
         except Exception as e:
             logging.error("Database connection error", exc_info=True)
 

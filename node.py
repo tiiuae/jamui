@@ -25,13 +25,14 @@ class Node:
 
         # Set text positions
         self.name: Text = Text(name, self.position + Vec2(0, self.rect.height // 2))
-        self.channel_text: Text = Text(f'Channel: {channel}', self.position - Vec2(0, self.rect.height // 2))
+        self.channel_text: Text = Text(f'Channel: {channel}', self.position - Vec2(0, self.rect.height // 2)) if channel is not None else None
 
     def draw(self, surface: pygame.Surface, font: pygame.font.Font) -> None:
         self.rect.center = (self.position.x, self.position.y)
         surface.blit(self.shadow, self.rect)
         surface.blit(self.sprite, self.rect)
-        self.channel_text.draw(surface, font)
+        if self.channel_text is not None:
+            self.channel_text.draw(surface, font)
         self.name.draw(surface, font)
 
     def change_channel(self, new_channel: int) -> None:

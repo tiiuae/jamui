@@ -36,7 +36,7 @@ class DatasetManager(threading.Thread):
             """)
             conn.commit()
 
-            nodes = [(1, 40), (2, 40), (3, 40)]
+            nodes = [(1, 36)]
             for node in nodes:
                 c.execute("INSERT INTO node_channels (node_id, channel) VALUES (?, ?)", node)
             conn.commit()
@@ -256,7 +256,8 @@ def main():
     dd = DatasetManager()
     dd.start()
 
-    host, port = "40.40.40.5", 8000
+    # host, port = "40.40.40.5", 8000
+    host, port = "localhost", 8000
     server = Server(host, port)
     server.start()
 

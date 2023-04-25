@@ -20,20 +20,25 @@ from text import Text
 
 
 class Bar:
-    def __init__(self, x: int, y: int, ch_numb: int) -> None:
+    def __init__(self, x: int, y: int, ch: int) -> None:
         self.x: int = x
         self.y: int = y
+        self.ch = ch
         self.red_sprite: pygame.Surface = pygame.image.load(f'sprites/bar_red.png').convert_alpha()
         self.green_sprite: pygame.Surface = pygame.image.load(f'sprites/bar_green.png').convert_alpha()
+        self.current_ch_sprite: pygame.Surface = pygame.image.load(f'sprites/bar_green_active.png').convert_alpha()
         self.shadow: pygame.Surface = pygame.image.load(f'sprites/bar_shadow2.png').convert_alpha()
         self.sprite: pygame.Surface = self.green_sprite
         self.rect: pygame.Rect = self.sprite.get_rect()
-        self.ch_numb: Text = Text(ch_numb, (x + self.rect.width // 2, self.y - 12), orientation='horizontal')
+        self.ch_numb: Text = Text(ch, (x + self.rect.width // 2, self.y - 12), orientation='horizontal')
         self.value: float = 0.0
         self.target_value: float = 0.0
 
-    def draw(self, surface: pygame.Surface, font: pygame.font.Font) -> None:
-        self.sprite = self.red_sprite if self.value < 0.5 else self.green_sprite
+    def draw(self, surface: pygame.Surface, current_channel: int) -> None:
+        if self.ch == current_channel:
+            self.sprite = self.current_ch_sprite
+        else:
+            self.sprite = self.red_sprite if self.value < 0.5 else self.green_sprite
         self.rect = self.sprite.get_rect()
 
         # pygame.draw.circle(surface, (0, 255, 0), (self.x, self.y), 10)
@@ -89,7 +94,7 @@ class BarPlot:
         for i in range(self.num_bars):
             bar_x: int = self.x + pad + self.side_spacing + i * (self.bar_spacing + bar_width)
             bar_y: int = self.y + height - self.bottom_spacing
-            bar: Bar = Bar(bar_x, bar_y, ch_numb=x_axis[i])
+            bar: Bar = Bar(bar_x, bar_y, ch=x_axis[i])
             self.bars.append(bar)
 
         # Temporary
@@ -102,7 +107,7 @@ class BarPlot:
                 bar.target_value = values[i]
                 bar.transition_to_target_value(transition_duration)
 
-    def draw(self, surface: pygame.Surface, font: pygame.font.Font, values: np.ndarray) -> None:
+    def draw(self, surface: pygame.Surface, font: pygame.font.Font, values: np.ndarray, current_channel: int) -> None:
         new_values_interval_sec: int = 2
         if time.time() - new_values_interval_sec > self.last_update:
             index: int = random.randint(0, self.num_bars - 1)
@@ -111,7 +116,7 @@ class BarPlot:
             self.last_update: float = time.time()
 
         for i, bar in enumerate(self.bars):
-            bar.draw(surface, font)
+            bar.draw(surface, current_channel)
 
         # Draw bottom and side rectangle
         pygame.draw.rect(surface, (255, 255, 255), (self.x, self.y + self.height - self.bottom_spacing, self.width, self.bottom_spacing), 0)  # x axis
