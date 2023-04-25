@@ -99,12 +99,14 @@ class BarPlot:
 
         # Temporary
         self.last_update: float = time.time()
-        self.update_bar_values(np.linspace(0.1, 1, self.num_bars))
+        self.update_bar_values(np.linspace(0.0, 1, self.num_bars))
 
     def update_bar_values(self, values: np.ndarray, transition_duration: float = 1.0) -> None:
+        min_value, max_value = 0.1, 1.0
+        value_range = max_value - min_value
         for i, bar in enumerate(self.bars):
             if values[i] is not None:
-                bar.target_value = values[i]
+                bar.target_value = min_value + (values[i] * value_range)
                 bar.transition_to_target_value(transition_duration)
 
     def draw(self, surface: pygame.Surface, font: pygame.font.Font, values: np.ndarray, current_channel: int) -> None:
