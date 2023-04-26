@@ -256,8 +256,8 @@ def main():
     dd = DatasetManager()
     dd.start()
 
-    # host, port = "40.40.40.5", 8000
-    host, port = "localhost", 8000
+    host, port = "40.40.40.5", 8000
+    #host, port = "localhost", 8000
     server = Server(host, port)
     server.start()
 
